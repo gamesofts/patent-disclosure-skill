@@ -1,0 +1,4 @@
+interface:
+  display_name: "Patent Disclosure Designer"
+  short_description: "Turn concept ideas into patent disclosures"
+  default_prompt: "Use $patent-disclosure-skill to turn my rough concept idea into patentable innovation points and a Chinese patent disclosure."

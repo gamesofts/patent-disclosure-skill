@@ -1,10 +1,10 @@
-# 专利挖掘与交底书技能 — 产品说明（PRD 摘要）
+# 概念想法到专利交底书技能 — 产品说明（PRD 摘要）
 
 ## 1. 产品概述
 
-本仓库为符合 [AgentSkills](https://agentskills.io) 习惯的 **Skill**：通过 `SKILL.md` 编排流程，`prompts/` 存放可引用的指令模板，`tools/` 预留可执行脚本扩展。
+本仓库为符合 Codex Skills / Agent Skills 习惯的 **Skill**：通过 `SKILL.md` 编排流程，`agents/openai.yaml` 提供 Codex 产品形态元数据，`prompts/` 存放可引用的指令模板，`tools/` 预留可执行脚本扩展。
 
-**目标**：完成专利点挖掘 → 查新 → 技术交底书（脱敏模版）→ 内部自检与迭代修订。
+**目标**：从一段概念想法完成创新点设计 → 查新 → 技术交底书（脱敏模版）→ 内部自检与迭代修订。用户提供项目路径或附件时，再执行可选扫描校准事实。
 
 ## 2. 用户流程
 
@@ -13,7 +13,9 @@
         ↓
 Step 1  边界与输入（prompts/intake.md）
         ↓
-Step 2  项目扫描（project_scan.md：.docx/.pptx 先转 MD；裸图目录可跳过）
+Step 2  概念拆解与创新方案设计（concept_design.md）
+        ↓
+可选    项目/附件扫描（project_scan.md：.docx/.pptx 先转 MD；裸图目录可跳过）
         ↓
 Step 3–4 候选专利点 + 融合选定（prompts/patent_points_analyzer.md）
         ↓
@@ -35,6 +37,7 @@ Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
 | 路径 | 说明 |
 |------|------|
 | `SKILL.md` | 唯一入口：触发条件、工具映射、步骤与 prompts 引用 |
+| `agents/openai.yaml` | Codex 产品形态元数据：展示名、短描述、默认调用提示 |
 | `prompts/` | 分步脚本化说明，由 Agent `Read` 后执行 |
 | `tools/` | 可选脚本；含 `md_to_docx.py`、`docx_to_md.py`、`pptx_to_md.py`、`cnipa_epub_search.py`（查新一步；另 `cnipa_epub_crawler.py` / `cnipa_epub_parse.py`），见 `tools/README.md` |
 | `docs/` | PRD、架构学习笔记等 |
@@ -43,6 +46,7 @@ Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
 
 ## 4. 约束
 
+- 默认不要求项目材料；只有用户提供项目、附件或已有交底书时才扫描。
 - Office 原材料（Word/PPT）：使用本仓库 `tools/docx_to_md.py`、`tools/pptx_to_md.py` 转换后再扫描（见 `SKILL.md`）。
 - 交底书正文**不得**包含「自检清单」章节。
 - 脱敏要求见 `disclosure_builder.md` / `template_reference.md`。
@@ -51,4 +55,4 @@ Step 8  内部自检（prompts/disclosure_self_check.md）→ 修订后交付
 
 ## 5. 环境变量
 
-在 Claude Code、OpenClaw 等环境中，常使用 **`CLAUDE_SKILL_DIR`** 指向技能根目录。使用 Cursor 打开本仓库时，该目录即仓库根目录。
+在 Codex 中通常按 skill 根目录解析相对路径。兼容 Claude Code、OpenClaw 等环境时，平台可能使用 **`CLAUDE_SKILL_DIR`** 指向包含 `SKILL.md` 的目录；使用 Cursor 打开本仓库时，该目录即仓库根目录。

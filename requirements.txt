@@ -4,6 +4,7 @@ python-docx>=1.1.0
 mammoth>=1.6.0
 python-pptx>=0.6.21
 matplotlib>=3.8.0
+lxml>=4.9.0
 
 # 可选：Step 5 国知局 epub.cnipa.gov.cn 抓取（Playwright，体积较大；未写入本文件以免默认全量安装）
 #   pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium

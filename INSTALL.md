@@ -1,6 +1,27 @@
 # 安装说明
 
-本技能遵循 [AgentSkills](https://agentskills.io) 常见布局：仓库根目录即技能根目录，内含 `SKILL.md`。
+本技能遵循 Codex Skills / Agent Skills 常见布局：仓库根目录即技能根目录，内含 `SKILL.md`，并提供 `agents/openai.yaml` 作为 Codex 产品形态元数据。
+
+## Codex
+
+安装到 Codex 全局 skills 目录：
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+git clone <本仓库 URL> "${CODEX_HOME:-$HOME/.codex}/skills/patent-disclosure-skill"
+```
+
+本地开发时，也可把当前仓库复制或软链到：
+
+```bash
+ln -s "$(pwd)" "${CODEX_HOME:-$HOME/.codex}/skills/patent-disclosure-skill"
+```
+
+重启 Codex 后，可用类似以下方式触发：
+
+```text
+Use $patent-disclosure-skill：我有一个概念想法……请设计创新点并生成技术交底书。
+```
 
 ## Claude Code
 

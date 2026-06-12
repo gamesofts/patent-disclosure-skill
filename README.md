@@ -1,8 +1,8 @@
 <div align="center">
 
-# 中国专利.skill
+# 概念想法到中国专利.skill
 
-> 从项目文档到**可交付的技术交底书**：专利点挖掘、**查新优先国知局公布公告站**、脱敏成文与自检闭环。
+> 从一段概念想法到**可交付的技术交底书**：创新点设计、**查新优先国知局公布公告站**、脱敏成文与自检闭环。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -11,12 +11,12 @@
 
 <br>
 
-有设计文档和代码，但**专利点还没梳**？<br>
+只有一个产品/技术想法，但**还没形成专利创新点**？<br>
 交底书要**系统框图、流程图**，还要**代理人能直接改的 Word**？<br>
 定稿之后还要**多轮补材料、纠错**，并希望**文件修改追溯**？<br>
 国知局公布站检索，期望 **次次爬成功、精准检索**？
 
-**本 Skill 按 AgentSkills 约定编排全流程，`SKILL.md` + `prompts/` 分步可读可迭代。**
+**本 Skill 已改造为 Codex 可直接安装使用的产品形态：`SKILL.md` + `agents/openai.yaml` + `prompts/` + `tools/`。**
 
 [功能特性](#功能特性) · [安装](#安装) · [使用](#使用) · [项目结构](#项目结构) · [示例](#示例) · [运行效果](#运行效果) · [参考文档](#参考文档) · [详细安装说明](INSTALL.md) · [技能入口](SKILL.md)
 
@@ -36,8 +36,10 @@
 <tr><th align="left" nowrap width="1%">能力</th><th align="left">说明</th></tr>
 </thead>
 <tbody>
-<tr><td nowrap width="1%"><strong>项目扫描</strong></td><td>按优先级读文档 / 代码；<code>.docx</code> / <code>.pptx</code> 先转 Markdown 再扫（见 <code>prompts/project_scan.md</code>）</td></tr>
-<tr><td nowrap width="1%"><strong>专利点</strong></td><td>候选点讨论与融合（<code>patent_points_analyzer.md</code>）</td></tr>
+<tr><td nowrap width="1%"><strong>概念输入</strong></td><td>用户只需输入一段想法、需求或技术方向；无需先准备项目代码或设计文档（见 <code>prompts/concept_design.md</code>）</td></tr>
+<tr><td nowrap width="1%"><strong>创新点设计</strong></td><td>把概念拆成技术问题、方案骨架、候选创新点、可实施模块与待确认假设</td></tr>
+<tr><td nowrap width="1%"><strong>可选项目扫描</strong></td><td>用户提供文档 / 代码时再按优先级校准事实；<code>.docx</code> / <code>.pptx</code> 先转 Markdown 再扫（见 <code>prompts/project_scan.md</code>）</td></tr>
+<tr><td nowrap width="1%"><strong>专利点筛选</strong></td><td>候选点筛选、融合与成案方向选择（<code>patent_points_analyzer.md</code>）</td></tr>
 <tr><td nowrap width="1%"><strong>查新</strong></td><td><strong>优先</strong> <a href="http://epub.cnipa.gov.cn/">国知局 · 中国专利公布公告</a>（<code>tools/cnipa_epub_search.py</code>）；异常或无果时降级 WebSearch（Google 学术 / Patents）。著录与外链写入第一章（<code>prior_art_search.md</code>）</td></tr>
 <tr><td nowrap width="1%"><strong>交底书成稿</strong></td><td>脱敏模版 + <strong>mermaid</strong> 系统框图与流程图；<code>mermaid_render.py</code> → PNG，默认再出 <strong>.docx</strong></td></tr>
 <tr><td nowrap width="1%"><strong>交付命名</strong></td><td>凡落盘交付：<code>{案件名}_{YYYYMMDDHHmmss}.md</code> 与同名 <code>.docx</code>（<code>disclosure_builder.md</code> §7.3）</td></tr>
@@ -57,19 +59,21 @@
 
 ## 安装
 
-### Claude Code
+### Codex
 
-> 请在 **git 仓库根目录** 或全局 skills 路径下放置本目录，使 `SKILL.md` 位于技能文件夹根级（与 [INSTALL.md](INSTALL.md) 一致）。
+推荐安装到 Codex 全局 skills 目录，使任意工作区都可通过 `$patent-disclosure-skill` 调用：
 
 ```bash
-# 示例：安装到当前项目的 skills 目录
-mkdir -p .claude/skills
-git clone <本仓库 URL> .claude/skills/patent-disclosure-skill
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+git clone <本仓库 URL> "${CODEX_HOME:-$HOME/.codex}/skills/patent-disclosure-skill"
 ```
 
-### Cursor
+本仓库根目录已经是 skill 根目录，`SKILL.md` 位于根级，并包含 Codex 使用的 `agents/openai.yaml`。
 
-将本仓库完整内容放到 Cursor 约定的 skills 路径（见 [INSTALL.md](INSTALL.md) 表格），重启后在 **Settings → Rules** 中确认技能已被发现。
+### Claude Code / Cursor
+
+仍可按 Agent Skills 布局安装到 `.claude/skills/` 或 `.cursor/skills/`；详见 [INSTALL.md](INSTALL.md)。
+
 
 ### 依赖
 
@@ -92,10 +96,12 @@ python -m playwright install chromium
 
 在 Agent 中用自然语言描述需求即可，例如：
 
-- 专利挖掘、专利点、**技术交底书**、查新、现有技术对比  
+- “我有个想法：把会议纪要自动拆成风险、待办和证据链，帮我设计创新点并生成交底书”
+- “基于边缘设备日志预测故障，看看能不能包装成专利方案”
+- 专利挖掘、专利点、**技术交底书**、查新、现有技术对比
 - 斜杠指令（视宿主配置）：如 `/patent-disclosure-skill`、`/交底书`
 
-建议同时说明 **项目路径** 或 **技术主题**（与 `SKILL.md` 中 `argument-hint` 一致）。  
+如果有项目路径或附件可同时提供；没有也可以直接从想法开始。
 **查新（Step 5）** 会优先通过 [中国专利公布公告](http://epub.cnipa.gov.cn/) 检索中国专利公开信息，再按需补充其他来源；流程见 `prompts/prior_art_search.md`。  
 在**已有交底书文件**上补充材料或纠错时，无需说「迭代」——技能会按 `merger.md` / `correction_handler.md` 处理；细则见 [SKILL.md](SKILL.md)。
 
@@ -108,9 +114,11 @@ python -m playwright install chromium
 ```
 patent-disclosure-skill/
 ├── SKILL.md                    # 入口：触发条件、工具表、步骤与 prompts 引用
+├── agents/openai.yaml          # Codex 产品形态元数据
 ├── prompts/                    # 分步模板（Agent Read 后遵循）
 │   ├── intake.md
-│   ├── project_scan.md
+│   ├── concept_design.md
+│   ├── project_scan.md         # 可选：有项目/附件时扫描
 │   ├── patent_points_analyzer.md
 │   ├── prior_art_search.md
 │   ├── disclosure_preview.md
@@ -154,7 +162,7 @@ patent-disclosure-skill/
 ## 参考文档
 
 - [技能入口与 Agent 流程](SKILL.md)（触发条件、`prompts/` 映射、工具表）
-- [详细安装说明](INSTALL.md)（Claude Code / Cursor 路径）
+- [详细安装说明](INSTALL.md)（Codex / Claude Code / Cursor 路径）
 - [图示与转换脚本](tools/README.md)（mermaid / mmdc、Word 导出、国知局 epub 查新工具）
 - [示例案件与原材料说明](examples/README.md)
 - [产品流程与目录约定](docs/PRD.md)

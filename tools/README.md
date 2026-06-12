@@ -6,13 +6,22 @@
 
 | 脚本 | 作用 |
 |------|------|
-| **`cnipa_epub_search.py`** | **（Step 5 优先）** 一步：拉取 + 解析，**不写结果页 HTML 落盘**；**Agent 须按 `prior_art_search.md` 分多次调用、每轮一词并自行合并 JSON**；脚本在**单次命令多词**时也会进程内循环检索并合并（人工/本地便利）；**stdout 仅一行** `EPUB_HITS_JSON:`；stderr 上 `EPUB_*` 为 **ASCII**；UTF-8 / PowerShell 见 **INSTALL.md**。 |
-| **`cnipa_epub_crawler.py`** | 仅 Playwright 拉取并**默认保存**结果页 HTML；stdout 亦含 **`EPUB_HITS_JSON:`**。 |
+| **`cnipa_epub_search.py`** | **当前优先入口**：一步拉取 + 解析，底层使用 CDP，不依赖 Playwright。stdout 仅输出 **`EPUB_HITS_JSON:`** + JSON，便于 Agent 稳定解析。 |
+| **`cnipa_epub_cdp_crawler.py`** | CDP 抓取实现：连接现有 `CDP_ENDPOINT`，或尝试启动本机 Chrome/Chromium remote-debugging 实例；等待国知局首页检索框后提交查询并返回结果页 HTML。 |
+| **`cnipa_epub_crawler.py`** | 历史工具：Playwright 拉取并**默认保存**结果页 HTML；stdout 亦含 **`EPUB_HITS_JSON:`**。当前默认不要调用。 |
 | **`cnipa_epub_parse.py`** | 仅解析已保存的 HTML：`python tools/cnipa_epub_parse.py path/to/_last_result_xxx.html`；字段含标题、公开号、链接、**`abstract`**（若有）。 |
 
-依赖：`pip install -r tools/requirements-cnipa.txt` 与 `python -m playwright install chromium`。环境变量见各脚本文件头。默认结果 HTML 落在 **`tools/_last_result_*.html`**（已 `.gitignore`）。
+CDP 用法：
 
-抓取失败或解析无命中时，Agent 按 **`prompts/prior_art_search.md`** 降级 **WebSearch**（如 Google 学术 / Google Patents）。
+```bash
+python3 tools/cnipa_epub_search.py "覆盖缺口识别"
+CDP_ENDPOINT=http://127.0.0.1:9222 python3 tools/cnipa_epub_search.py "精准测试 源码差异"
+CDP_HEADED=1 python3 tools/cnipa_epub_search.py "源码差异"
+```
+
+历史 Playwright 依赖：`pip install -r tools/requirements-cnipa.txt` 与 `python -m playwright install chromium`。除非用户明确允许 Playwright，否则不要走该链路。
+
+国知局/CDP 检索不足时，Agent 按 **`prompts/prior_art_search.md`** 使用普通 Web / Google Patents / Google 学术等公开页面补充核验。
 
 ---
 
@@ -25,6 +34,8 @@
 将 fenced **mermaid**（`` ```mermaid`` ``）逐块交给 **`mmdc`** 渲染为 PNG；输出 `.md` 中**保留** mermaid 围栏源码，并追加 ``<!-- ![图示 n](mermaid_figures/…) -->`` 供 **`md_to_docx.py`** 嵌入 Word（Word **仅**嵌 PNG，不写 mermaid 代码块）。**3.2 系统框图**与 **3.4 流程图**均用 mermaid（`flowchart` / `subgraph` 等），交底书正文**不再**要求单独的文字框图或 PlantUML。
 
 **生图失败降级**：某一围栏 `mmdc` 失败时**不中断**——该处**保留**原 `` ```mermaid`` … `` ``` `` 源码；其余块照常出图。仍写出定稿 `.md`，并**照常尝试**生成 Word（未出图块在 Word 中为 **Consolas 代码块**，与 `md_to_docx` 行为一致）。
+
+**版式质量要求**：`mmdc` 成功不等于图可交付。定稿图默认使用黑白框线风格，避免彩色填充、彩色线条、渐变、阴影和装饰性配色。定稿前必须人工/截图检查：线不得穿过框、压节点文字、压标题或穿过菱形判断框；反馈线优先走外侧空白区。若自动布局不合格，须调整 mermaid 或用脚本重绘 PNG。图片中不得包含对话式说明、自检文字或“说明：……”类解释段。
 
 ### 依赖：mermaid（须 Node.js + `mmdc`）
 
@@ -94,9 +105,31 @@ Windows 上若仅装 Node 未执行 `npm install`，脚本会通过 `npx -y @mer
 
 ---
 
-## math_render.py — LaTeX 公式 → PNG
+## docx_omml_equations.py — LaTeX → Word 原生公式（定稿优先）
 
-将 Markdown 中的 **LaTeX 公式**（``$...$`` / ``\\(...\\)`` 行内；``$$...$$`` / ``\\[...\\]`` 块级）用 **matplotlib mathtext** 渲染为 PNG；**保留 LaTeX 原文**，图片引用写入 HTML 注释 ``<!-- ![...](math_figures/...) -->``（Markdown 预览不显示图），供 **`md_to_docx.py`** 嵌入 Word。
+含公式的交底书 **优先** 使用本脚本生成 Word：Markdown 保留 LaTeX，`.docx` 内公式替换为 Word OMML/公式编辑器对象，避免公式图片，也避免用户打开 Word 后看到 `\theta`、`\mathrm`、`\[`、`\(` 等反斜杠源码。
+
+```bash
+python3 tools/docx_omml_equations.py \
+  -i "案件名_20260408143025.md" \
+  -m "案件名_20260408143025.md" \
+  -o "案件名_20260408143025.docx" \
+  --base-dir "$(dirname "案件名_20260408143025.md")"
+```
+
+自检：
+
+```bash
+unzip -p "案件名_20260408143025.docx" word/document.xml | grep -c '<m:oMath'
+unzip -p "案件名_20260408143025.docx" word/document.xml | grep -E '\\theta|\\mathrm|\\\[|\\\('
+unzip -l "案件名_20260408143025.docx" | grep word/media
+```
+
+期望：`<m:oMath` 数量大于 0；第二条无输出；`word/media` 只包含系统图、流程图等必要插图，不包含公式图片。
+
+## math_render.py — LaTeX 公式 → PNG（非最终交付优先）
+
+将 Markdown 中的 **LaTeX 公式**（``$...$`` / ``\\(...\\)`` 行内；``$$...$$`` / ``\\[...\\]`` 块级）用 **matplotlib mathtext** 渲染为 PNG；**保留 LaTeX 原文**，图片引用写入 HTML 注释 ``<!-- ![...](math_figures/...) -->``（Markdown 预览不显示图）。该脚本可用于预览或不要求 Word 原生公式的场景；**正式交底书含公式时不要用公式 PNG 作为最终 Word 交付**，改用 `docx_omml_equations.py`。
 
 **Mermaid 框图**：``mermaid_render.py`` **保留** `` ```mermaid`` 源码，并追加 ``<!-- ![图示 n](mermaid_figures/...) -->``（预览隐藏图引用，Word 仍大图嵌入）。
 
@@ -119,7 +152,7 @@ python3 tools/math_render.py -i draft.md -o draft_with_math.md
 python3 tools/math_render.py -i draft.md -o out.md --assets-dir math_figures
 ```
 
-定稿流水线：**``mermaid_render.py`` 默认先跑公式再跑 mermaid**（可用 ``--no-math`` 跳过）。单独转 Word 时 **`md_to_docx.py` 也会自动尝试公式渲染**（``--no-math-render`` 可关闭）。
+定稿流水线：**``mermaid_render.py`` 默认先跑公式再跑 mermaid**（可用 ``--no-math`` 跳过）。含公式的正式交付建议改为：先生成/嵌入清晰图示，再用 `docx_omml_equations.py` 生成 Word 原生公式版；单独转 Word 时 **`md_to_docx.py` 会自动尝试公式渲染为 PNG**，正式稿应加 ``--no-math-render`` 或直接使用 `docx_omml_equations.py`。
 
 ---
 
@@ -170,7 +203,7 @@ python3 tools/md_to_docx.py -i a.md -o a.docx --image-max-width-inches 6 --image
 | `> ` | 左缩进引用 |
 | `---` 等 | 浅色分隔线 |
 | `![](path)` | 嵌入图片（路径需存在；默认宽/高上限内等比缩放；公式图与正文混排） |
-| `$` / `\\(...\\)` / `$$` / `\\[...\\]` LaTeX | 默认先 **`math_render`** 转 PNG（注释隐藏引用）；失败则 **原文**写入 Word |
+| `$` / `\\(...\\)` / `$$` / `\\[...\\]` LaTeX | 默认先 **`math_render`** 转 PNG（注释隐藏引用）；失败则 **原文**写入 Word。**正式含公式交底书不要依赖该默认行为**，应使用 `docx_omml_equations.py` 输出 Word 原生公式。 |
 
 **未完整支持**：复杂嵌套列表、HTML 块、**未预渲染的** mermaid 围栏（仍为代码块）、脚注、任务列表等。定稿前请运行 **`mermaid_render.py`**；若仅用外部工具导出 PNG，可直接写 `![](...)`。
 

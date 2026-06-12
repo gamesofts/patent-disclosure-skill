@@ -2,7 +2,7 @@
 """
 国知局公布站「检索 + 解析」一步完成：内存中持有结果页 HTML，**默认不落盘**。
 
-内部调用 ``cnipa_epub_crawler.search_epub_keyword``（等同先 ``fetch_epub_result_html`` 再
+内部调用 ``cnipa_epub_cdp_crawler.search_epub_keyword``（等同先 ``fetch_epub_result_html`` 再
 ``parse_search_result_html``）。
 
 **输出约定**（便于 Agent 抓取且不触发误判降级）：
@@ -15,9 +15,10 @@
 **检索词拆分（仅按空白）**：命令行中所有参数会按 **Python 空白规则**（`str.split()`）拆成多段；
 **一段一查**，结果按公开号去重合并。**不在本脚本内**对长中文做自动分词或拆字——**相关度高的语义化
 检索单位须在 Agent 生成 Bash 前完成**（见 ``prompts/prior_art_search.md``「国知局检索词（生成阶段必做）」）。
-若需**整句一次**向公布站提交（站内 AND），请改用 ``cnipa_epub_crawler.py`` 单传一句。
+若需**整句一次**向公布站提交（站内 AND），请改用 ``cnipa_epub_cdp_crawler.py`` 单传一句。
 
-需已安装：pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium
+浏览器驱动：Chrome DevTools Protocol（CDP）。默认连接 ``http://127.0.0.1:9222``；若没有
+现成端点，脚本会尝试启动本机 Chrome/Chromium 并开启 remote-debugging。不要安装或调用 Playwright。
 
 用法：
 
@@ -27,10 +28,11 @@
 
 **必须**至少有一个非空检索词；**不设默认**。
 
-若需将结果页 HTML 保存到磁盘，请改用 ``cnipa_epub_crawler.py``；若只对已有 HTML 文件做解析，
+若需将结果页 HTML 保存到磁盘，请改用 ``cnipa_epub_cdp_crawler.py``；若只对已有 HTML 文件做解析，
 请用 ``cnipa_epub_parse.py``。
 
-环境变量：与 ``cnipa_epub_crawler.py`` 相同（如 ``EPUB_WAF_MAX_WAIT_SEC``、``PLAYWRIGHT_HEADED``）。
+环境变量：与 ``cnipa_epub_cdp_crawler.py`` 相同（如 ``CDP_ENDPOINT``、``CDP_PORT``、
+``CDP_HEADED``、``CHROME_BIN``、``EPUB_WAF_MAX_WAIT_SEC``）。
 """
 from __future__ import annotations
 
@@ -80,7 +82,7 @@ def _dedupe_hits(hits_lists: list) -> list:
 def _usage() -> None:
     print("usage: python tools/cnipa_epub_search.py <term> [more terms...]", file=sys.stderr)
     print(
-        "whitespace splits to multiple terms; one Playwright run per term; merge by pub_number.",
+        "whitespace splits to multiple terms; one CDP browser run per term; merge by pub_number.",
         file=sys.stderr,
     )
     print('example: python tools/cnipa_epub_search.py "batch 调度 异构"', file=sys.stderr)
@@ -103,16 +105,7 @@ def main(argv: list[str] | None = None) -> int:
 
     os.environ.setdefault("EPUB_WAF_MAX_WAIT_SEC", "180")
 
-    try:
-        import playwright  # noqa: F401
-    except ImportError:
-        print(
-            "ERROR: pip install -r tools/requirements-cnipa.txt && python -m playwright install chromium",
-            file=sys.stderr,
-        )
-        return 1
-
-    from cnipa_epub_crawler import search_epub_keyword
+    from cnipa_epub_cdp_crawler import search_epub_keyword
     from cnipa_epub_parse import hits_to_jsonable
 
     multi = len(terms) > 1

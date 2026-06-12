@@ -65,7 +65,7 @@ python3 ${CLAUDE_SKILL_DIR}/tools/iteration_dialog_log.py --case-dir "{案件目
 1. 读本文 → 按上表选 `merger.md` 或 `correction_handler.md` 并 **`Read`**。
 2. **`Read`** 基准稿 + 本轮补充材料。
 3. 在稿内完成合并或纠正逻辑（自检 **8.2、8.3** 见 `disclosure_self_check.md`）。
-4. **`Write`** 新时间戳 `.md` → 运行 **`mermaid_render.py -o`** 写出定稿图与 **`.docx`**。
+4. **`Write`** 新时间戳 `.md` → 生成同名 **`.docx`**。含公式时优先运行 **`docx_omml_equations.py`** 或等价流程，确保 Word 为原生公式对象；无公式时可运行 **`mermaid_render.py -o`** 或 `md_to_docx.py`。图示须检查框线不重叠，图片内不得出现对话说明文字。
 5. 追加 **`交底书修订对话记录.md`**（**`iteration_dialog_log.py`** 或手工），见上文「修订对话记录」。
 6. 在回复中写明新文件路径，并输出该模板要求的 **「合并摘要（留档）」**或 **「纠正摘要（留档）」**。
 
